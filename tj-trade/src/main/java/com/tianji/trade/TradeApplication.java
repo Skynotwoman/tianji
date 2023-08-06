@@ -9,7 +9,9 @@ import org.springframework.core.env.Environment;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-
+/*、
+*能
+* */
 @MapperScan("com.tianji.trade.mapper")
 @SpringBootApplication
 @Slf4j

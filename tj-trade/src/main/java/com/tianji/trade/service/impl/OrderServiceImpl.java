@@ -281,7 +281,7 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
             return;
         }
         // 3.判断订单所属用户与当前登录用户是否一致
-        if(userId != order.getUserId()){
+        if(!userId.equals(order.getUserId())){
             // 不一致，说明不是当前用户的订单，结束
             throw new BadRequestException("不能删除他人订单");
         }
@@ -406,3 +406,8 @@ public class OrderServiceImpl extends ServiceImpl<OrderMapper, Order> implements
     }
 
 }
+/*就是这个debug里面有个删除订单 有用户信息 订单信息这个数据库在哪看得到
+*
+* 好像没有吧
+*
+* 就在那个下载下来的虚拟机里吗？ 哦哦好的 知道了谢谢没事*/
