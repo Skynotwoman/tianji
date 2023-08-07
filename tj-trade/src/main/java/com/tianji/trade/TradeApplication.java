@@ -9,13 +9,7 @@ import org.springframework.core.env.Environment;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
-/*、
-*能
-* 没
-* 我昨天推送的时候好像账号密码输入错误了 git的账号
-* 对
-*
-* */
+
 @MapperScan("com.tianji.trade.mapper")
 @SpringBootApplication
 @Slf4j
