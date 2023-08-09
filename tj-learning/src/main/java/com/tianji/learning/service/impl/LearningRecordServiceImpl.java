@@ -114,7 +114,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
 
     }
 
-    private boolean handleExamRecord(Long userId, LearningRecordFormDTO recordDTO) {
+    private boolean handleVideoRecord(Long userId, LearningRecordFormDTO recordDTO) {
         //查询旧的学习记录
         LearningRecord old = lambdaQuery()
                 .eq(LearningRecord::getLessonId, recordDTO.getLessonId())
@@ -123,7 +123,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         //判断是否存在
         if (old == null){
             //不存在，新增
-            //转换DTO
+            //转换PO
             LearningRecord record = BeanUtils.copyBean(recordDTO, LearningRecord.class);
             record.setUserId(userId);
             //写入数据库
@@ -149,7 +149,7 @@ public class LearningRecordServiceImpl extends ServiceImpl<LearningRecordMapper,
         return finished;
     }
 
-    private boolean handleVideoRecord(Long userId, LearningRecordFormDTO recordDTO) {
+    private boolean handleExamRecord(Long userId, LearningRecordFormDTO recordDTO) {
         //转换DTO
         LearningRecord record = BeanUtils.copyBean(recordDTO, LearningRecord.class);
         record.setUserId(userId);
