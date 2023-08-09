@@ -1,7 +1,8 @@
 package com.tianji.learning.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.baomidou.mybatisplus.extension.plugins.pagination.PageDto;
 import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
 import com.tianji.common.domain.dto.PageDTO;
@@ -113,4 +114,42 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         }
         return PageDTO.of(page, list);
     }
+
+    @Override
+    public LearningLessonVO queryLessonByCourseId(Long courseId){
+        //获取当前用户id
+        Long userId = UserContext.getUser();
+        //查询课程信息
+        LearningLesson lesson = getOne(buildUserIdAndCourseIdWrapper(userId, courseId));
+        if (lesson == null){
+            return null;
+        }
+        return BeanUtils.copyBean(lesson, LearningLessonVO.class);
+    }
+
+    @Override
+    public LearningLesson queryByUserIdAndCourseId(Long userId, Long courseId) {
+        return getOne(buildUserIdAndCourseIdWrapper(userId,courseId));
+    }
+
+    /**
+     * 基于用户ID和课程ID构建查询条件。
+     *
+     * @param userId    用户ID
+     * @param courseId  课程ID
+     * @return 返回构建好的Lambda查询条件
+     */
+    private LambdaQueryWrapper<LearningLesson> buildUserIdAndCourseIdWrapper(Long userId, Long courseId){
+        // 创建一个新的QueryWrapper，并转换为Lambda查询格式
+        LambdaQueryWrapper<LearningLesson> queryWrapper = new QueryWrapper<LearningLesson>()
+                .lambda()
+                // 添加等于userId的查询条件
+                .eq(LearningLesson::getUserId, userId)
+                // 添加等于courseId的查询条件
+                .eq(LearningLesson::getCourseId,courseId);
+
+        // 返回构建好的查询条件
+        return queryWrapper;
+    }
+
 }
