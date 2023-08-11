@@ -49,4 +49,10 @@ public class LearningLessonController {
     public LearningPlanPageVO queryMyPlans(PageQuery query){
         return lessonService.queryMyPlans(query);
     }
+
+    @GetMapping("/now")
+    @ApiOperation("查询我的学习状态")
+    public LearningLessonVO queryMyCurrentLessons(){
+        return lessonService.queryMyCurrentLessons();
+    }
 }

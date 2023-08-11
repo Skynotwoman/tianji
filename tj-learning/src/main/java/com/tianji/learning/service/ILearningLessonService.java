@@ -31,4 +31,6 @@ public interface ILearningLessonService extends IService<LearningLesson> {
     void createLearningPlan(Long courseId, Integer freq);
 
     LearningPlanPageVO queryMyPlans(PageQuery query);
+
+    LearningLessonVO queryMyCurrentLessons();
 }

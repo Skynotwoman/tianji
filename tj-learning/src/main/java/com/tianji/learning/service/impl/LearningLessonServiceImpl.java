@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.tianji.api.client.course.CatalogueClient;
 import com.tianji.api.client.course.CourseClient;
 import com.tianji.api.dto.IdAndNumDTO;
+import com.tianji.api.dto.course.CataSimpleInfoDTO;
+import com.tianji.api.dto.course.CourseFullInfoDTO;
 import com.tianji.api.dto.course.CourseSimpleInfoDTO;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.domain.query.PageQuery;
@@ -223,6 +225,42 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
             voList.add(vo);
         }
         return result.pageInfo(p.getTotal(),p.getPages(),voList);
+    }
+
+    @Override
+    public LearningLessonVO queryMyCurrentLessons() {
+        Long userId = UserContext.getUser();
+        LearningLesson lesson = lambdaQuery()
+                .eq(LearningLesson::getUserId,userId)
+                .eq(LearningLesson::getStatus, LessonStatus.FINISHED.getValue())
+                .orderByAsc(LearningLesson::getLatestLearnTime)
+                .last("limit 1")
+                .one();
+        if (lesson == null) {
+            return null;
+        }
+        LearningLessonVO vo = BeanUtils.copyBean(lesson, LearningLessonVO.class);
+        CourseFullInfoDTO cInfo = courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
+        if (cInfo == null) {
+            throw new BadRequestException("课程不存在");
+        }
+        vo.setCourseName(cInfo.getName());
+        vo.setCourseCoverUrl(cInfo.getCoverUrl());
+        vo.setSections(cInfo.getSectionNum());
+
+        Integer countAmount = lambdaQuery()
+                .eq(LearningLesson::getUserId, userId)
+                .count();
+        vo.setCourseAmount(countAmount);
+
+        List<CataSimpleInfoDTO> cataInfos =
+                catalogueClient.batchQueryCatalogue(CollUtils.singletonList(lesson.getLatestSectionId()));
+        if (!CollUtils.isEmpty(cataInfos)){
+            CataSimpleInfoDTO cataInfo = cataInfos.get(0);
+            vo.setLatestSectionName(cataInfo.getName());
+            vo.setLatestSectionIndex(cataInfo.getCIndex());
+        }
+        return vo;
     }
 
     /**
