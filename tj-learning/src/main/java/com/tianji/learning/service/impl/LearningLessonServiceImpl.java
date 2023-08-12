@@ -195,71 +195,113 @@ public class LearningLessonServiceImpl extends ServiceImpl<LearningLessonMapper,
         result.setWeekTotalPlan(weekTotalPlan);
         //TODO 学习积分
 
-        //分页数据
-        //分页查询课表
+        // 使用lambda查询的方式进行分页查询。
+        // 查询符合特定条件的课程或课时信息。
         Page<LearningLesson> p = lambdaQuery()
-                .eq(LearningLesson::getUserId, userId)
-                .eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING)
-                .in(LearningLesson::getStatus, LessonStatus.NOT_BEGIN, LessonStatus.LEARNING)
-                .page(query.toMpPage("latest_learn_time", false));
-        List<LearningLesson> records = p.getRecords();
+                .eq(LearningLesson::getUserId, userId)  // 查询条件：用户ID
+                .eq(LearningLesson::getPlanStatus, PlanStatus.PLAN_RUNNING)  // 查询条件：计划状态为“进行中”
+                .in(LearningLesson::getStatus, LessonStatus.NOT_BEGIN, LessonStatus.LEARNING)  // 查询条件：课程状态为“未开始”或“正在学习”
+                .page(query.toMpPage("latest_learn_time", false));  // 分页信息，按最后学习时间降序排序
+
+        List<LearningLesson> records = p.getRecords();  // 从分页对象中获取查询到的记录
+
+        // 如果没有查询到任何记录，则返回空的分页数据。
         if (CollUtils.isEmpty(records)) {
             return result.emptyPage(p);
         }
-        //课表对应的课程信息
+
+        // 查询每个课程或课时的简单信息，并存储在一个map中，key为课程ID，value为课程简单信息。
         Map<Long, CourseSimpleInfoDTO> cMap = queryCourseSimpleInfoList(records);
-        //每一个课程的已经学习小节数量
+
+        // 查询每个课程或课时在指定时间段内的已学习的小节数量，并存储在一个map中，key为课程或课时ID，value为已学习的小节数量。
         List<IdAndNumDTO> list = recordMapper.countLearnedSections(userId,begin,end);
         Map<Long, Integer> countMap = IdAndNumDTO.toMap(list);
-        //组装数据vo
+
+        // 创建一个空的结果列表，用于存储转换后的视图对象。
         List<LearningPlanVO> voList = new ArrayList<>(records.size());
+
+        // 遍历查询到的每个记录，并转换为前端可用的视图对象。
         for (LearningLesson r : records) {
-            LearningPlanVO vo = BeanUtils.copyBean(r, LearningPlanVO.class);
-            //填充课程信息
+            LearningPlanVO vo = BeanUtils.copyBean(r, LearningPlanVO.class);  // 将课程或课时对象转换为视图对象
+
+            // 从map中获取课程或课时的简单信息。
             CourseSimpleInfoDTO cInfo = cMap.get(r.getCourseId());
-            if (cInfo == null) {
+
+            // 填充视图对象的课程信息。
+            if (cInfo != null) {
                 vo.setCourseName(cInfo.getName());
                 vo.setSections(cInfo.getSectionNum());
             }
+
+            // 填充视图对象的已学习的小节数量。
             vo.setWeekLearnedSections(countMap.getOrDefault(r.getId(),0));
+
+            // 将转换后的视图对象添加到结果列表中。
             voList.add(vo);
         }
+
+        // 返回包含分页信息和转换后的视图对象的结果。
         return result.pageInfo(p.getTotal(),p.getPages(),voList);
     }
 
+    /**
+     * 查询当前用户的最新课程。
+     *
+     * @return 返回一个表示学习课程的视图对象。
+     */
     @Override
     public LearningLessonVO queryMyCurrentLessons() {
+
+        // 从用户上下文中获取当前用户的ID。
         Long userId = UserContext.getUser();
+
+        // 使用lambda查询方式查询用户的最新完成的课程。
         LearningLesson lesson = lambdaQuery()
-                .eq(LearningLesson::getUserId,userId)
-                .eq(LearningLesson::getStatus, LessonStatus.FINISHED.getValue())
-                .orderByAsc(LearningLesson::getLatestLearnTime)
-                .last("limit 1")
-                .one();
+                .eq(LearningLesson::getUserId,userId)  // 用户ID与当前用户ID匹配
+                .eq(LearningLesson::getStatus, LessonStatus.FINISHED.getValue()) // 课程状态为已完成
+                .orderByAsc(LearningLesson::getLatestLearnTime)  // 根据最后学习时间升序排序
+                .last("limit 1")  // 限制结果只返回一个记录
+                .one();  // 获取单个结果
+
+        // 如果没有找到课程，则直接返回null。
         if (lesson == null) {
             return null;
         }
+
+        // 将找到的课程实体转换为视图对象。
         LearningLessonVO vo = BeanUtils.copyBean(lesson, LearningLessonVO.class);
+
+        // 使用课程客户端服务，根据课程ID查询课程的完整信息。
         CourseFullInfoDTO cInfo = courseClient.getCourseInfoById(lesson.getCourseId(), false, false);
+
+        // 如果找不到相应的课程信息，则抛出异常。
         if (cInfo == null) {
             throw new BadRequestException("课程不存在");
         }
+
+        // 设置课程视图对象的相关属性。
         vo.setCourseName(cInfo.getName());
         vo.setCourseCoverUrl(cInfo.getCoverUrl());
         vo.setSections(cInfo.getSectionNum());
 
+        // 使用lambda查询方式计算用户的课程总数。
         Integer countAmount = lambdaQuery()
                 .eq(LearningLesson::getUserId, userId)
                 .count();
         vo.setCourseAmount(countAmount);
 
+        // 使用目录客户端服务批量查询最新章节的目录信息。
         List<CataSimpleInfoDTO> cataInfos =
                 catalogueClient.batchQueryCatalogue(CollUtils.singletonList(lesson.getLatestSectionId()));
+
+        // 如果获取到目录信息，设置课程视图对象的相关属性。
         if (!CollUtils.isEmpty(cataInfos)){
             CataSimpleInfoDTO cataInfo = cataInfos.get(0);
             vo.setLatestSectionName(cataInfo.getName());
             vo.setLatestSectionIndex(cataInfo.getCIndex());
         }
+
+        // 返回转换后的课程视图对象。
         return vo;
     }
 
