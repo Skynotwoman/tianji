@@ -5,9 +5,9 @@
     <select id="countLearnedSections" resultType="com.tianji.api.dto.IdAndNumDTO">
         SELECT lesson_id AS id, COUNT(1) AS num
         From learning_record
-        WHERE user_id = user_id
+        WHERE user_id = #{user_id}
         AND finished = 1
-        AND finished_time &gt; #{begin} AND finish_time &lt; #{end}
+        AND finished_time &gt; #{begin} AND finished_time &lt; #{end}
         GROUP BY lesson_id;
     </select>
 </mapper>
