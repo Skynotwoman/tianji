@@ -37,7 +37,6 @@ tj:
     version: v1.0
   jdbc:
     database: tj_remark
-  auth:
     resource:
       enable: true
 
