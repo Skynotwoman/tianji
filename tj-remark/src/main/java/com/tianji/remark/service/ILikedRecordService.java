@@ -20,4 +20,6 @@ public interface ILikedRecordService extends IService<LikedRecord> {
     void addLikeRecord(LikeRecordFormDTO recordDTO);
 
     Set<Long> isBizLiked(List<Long> bizIds);
+
+    void readLikeTimesAndSendMessage(String bizType, int maxBizSize);
 }
