@@ -77,7 +77,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //分装返回vo
         SignResultVO vo = new SignResultVO();
         vo.setSignDays(signDays);
-        vo.setSignPoints(rewardPoints);
+        vo.setRewardPoints(rewardPoints);
         return vo;
     }
 
