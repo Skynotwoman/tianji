@@ -50,7 +50,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //保存签到信息
         Boolean exits = redisTemplate.opsForValue().setBit(key, offset, true);
         if (BooleanUtils.isTrue(exits)) {
-            throw new BizIllegalException("不存在重复签到！");
+            throw new BizIllegalException("不允许重复签到！");
         }
         //计算连续签到天数
         int signDays = countSignDays(key, now.getDayOfMonth());
@@ -77,7 +77,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         //分装返回vo
         SignResultVO vo = new SignResultVO();
         vo.setSignDays(signDays);
-        vo.setSignPoints(0);
+        vo.setSignPoints(rewardPoints);
         return vo;
     }
 
