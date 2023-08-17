@@ -16,6 +16,7 @@ import com.tianji.learning.mq.message.SignInMessage;
 import com.tianji.learning.service.IPointsRecordService;
 import com.tianji.learning.service.ISignRecordService;
 import lombok.RequiredArgsConstructor;
+import org.apache.commons.lang3.BitField;
 import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -35,7 +36,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SignRecordServiceImpl implements ISignRecordService {
     private final RabbitMqHelper mqHelper;
-
     private final StringRedisTemplate redisTemplate;
     @Override
     public SignResultVO addSignRecords() {
@@ -67,7 +67,6 @@ public class SignRecordServiceImpl implements ISignRecordService {
                 rewardPoints = 40;
                 break;
         }
-
         //保存积分明细
         mqHelper.send(
                 MqConstants.Exchange.LEARNING_EXCHANGE,
@@ -80,6 +79,54 @@ public class SignRecordServiceImpl implements ISignRecordService {
         vo.setRewardPoints(rewardPoints);
         return vo;
     }
+
+    @Override
+    public Byte[] querySignRecord() {
+        // 从用户上下文中获取当前用户的ID
+        Long userId = UserContext.getUser();
+
+        // 获取当前日期
+        LocalDate now = LocalDate.now();
+
+        // 获取当前月份的天数
+        int dayOfMonth = now.getDayOfMonth();
+
+        // 根据用户ID和日期生成Redis的键名
+        String key = RedisConstants.SING_RECORD_KEY_PREFIX
+                + userId
+                + now.format(DateUtils.SIGN_DATE_SUFFIX_FORMATTER);
+
+        // 从Redis中按位查询指定键名下的签到数据
+        // 使用bitfield命令检索指定的位字段
+        List<Long> result = redisTemplate.opsForValue()
+                .bitField(key, BitFieldSubCommands.create().get(
+                        BitFieldSubCommands.BitFieldType.unsigned(dayOfMonth)).valueAt(0));
+
+        // 如果结果为空或不存在，则返回一个空的字节数组
+        if (CollUtils.isEmpty(result)) {
+            return new Byte[0];
+        }
+
+        // 将结果转化为整数
+        int num = result.get(0).intValue();
+
+        // 初始化一个Byte数组，其长度与当前月份的天数相同
+        Byte[] arr = new Byte[dayOfMonth];
+
+        // 从结果的最后一个位开始，逐个解析每一位，将其存储在Byte数组中
+        int pos = dayOfMonth - 1;
+        while (pos >= 0) {
+            // 通过&操作获取当前位的值（0或1）
+            arr[pos--] = (byte)(num & 1);
+
+            // 右移一位，准备检查下一个位
+            num >>>= 1;
+        }
+
+        // 返回存储签到记录的Byte数组
+        return arr;
+    }
+
 
 
     private int countSignDays(String key, int len) {

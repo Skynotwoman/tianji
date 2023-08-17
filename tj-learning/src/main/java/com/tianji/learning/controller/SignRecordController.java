@@ -19,11 +19,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class SignRecordController {
     private final ISignRecordService recordService;
 
-    @GetMapping
+    @PostMapping
     @ApiOperation("签到功能窗口")
     public SignResultVO addSignRecords(){
         return recordService.addSignRecords();
     }
+
+    @GetMapping
+    @ApiOperation("查询签到记录")
+    public Byte[] querySignRecord(){
+        return recordService.querySignRecord();
+    }
+
+
 
 
 }

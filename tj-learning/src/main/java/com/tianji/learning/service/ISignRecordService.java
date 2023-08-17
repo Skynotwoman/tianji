@@ -16,4 +16,6 @@ import com.tianji.learning.service.impl.SignRecordServiceImpl;
 public interface ISignRecordService {
 
     SignResultVO addSignRecords();
+
+    Byte[] querySignRecord();
 }
