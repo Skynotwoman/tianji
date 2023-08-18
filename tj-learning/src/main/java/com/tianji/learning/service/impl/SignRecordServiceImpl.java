@@ -1,6 +1,5 @@
 package com.tianji.learning.service.impl;
 
-import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.common.autoconfigure.mq.RabbitMqHelper;
 import com.tianji.common.constants.MqConstants;
 import com.tianji.common.exceptions.BizIllegalException;
@@ -9,14 +8,10 @@ import com.tianji.common.utils.CollUtils;
 import com.tianji.common.utils.DateUtils;
 import com.tianji.common.utils.UserContext;
 import com.tianji.learning.constants.RedisConstants;
-import com.tianji.learning.domain.po.PointsRecord;
 import com.tianji.learning.domain.vo.SignResultVO;
-import com.tianji.learning.mapper.PointsRecordMapper;
 import com.tianji.learning.mq.message.SignInMessage;
-import com.tianji.learning.service.IPointsRecordService;
 import com.tianji.learning.service.ISignRecordService;
 import lombok.RequiredArgsConstructor;
-import org.apache.commons.lang3.BitField;
 import org.springframework.data.redis.connection.BitFieldSubCommands;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
@@ -136,7 +131,7 @@ public class SignRecordServiceImpl implements ISignRecordService {
         if (CollUtils.isEmpty(result)) {
             return 0;
         }
-        Long num = result.get(0);
+        int num = result.get(0).intValue();
         int count = 0;
         //循环，与1做计算，得到最后一个bit，判断是否为0，为0则终止
         while ((num & 1) == 1){
