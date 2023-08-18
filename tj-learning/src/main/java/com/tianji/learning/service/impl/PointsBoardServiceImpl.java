@@ -10,11 +10,9 @@ import com.tianji.learning.domain.po.PointsBoard;
 import com.tianji.learning.domain.query.PointsBoardQuery;
 import com.tianji.learning.domain.vo.PointsBoardItemVO;
 import com.tianji.learning.domain.vo.PointsBoardVO;
-import com.tianji.learning.enums.LessonStatus;
 import com.tianji.learning.mapper.PointsBoardMapper;
 import com.tianji.learning.service.IPointsBoardService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
-import jdk.jshell.Snippet;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.BoundZSetOperations;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -81,11 +79,17 @@ public class PointsBoardServiceImpl extends ServiceImpl<PointsBoardMapper, Point
         return vo;
     }
 
+    @Override
+    public void createPointsBoardTableBySeason(Integer season) {
+        getBaseMapper().createPointsBoardTable("points_board_" + season);
+    }
+
     private List<PointsBoard> queryHistoryBoard(PointsBoardQuery query) {
         return null;
     }
 
-    private List<PointsBoard> queryCurrentBoard(String key, Integer pageNo, Integer pageSize) {
+    @Override
+    public List<PointsBoard> queryCurrentBoard(String key, Integer pageNo, Integer pageSize) {
         int from = (pageNo - 1) * pageSize;
         Set<ZSetOperations.TypedTuple<String>> tuples = redisTemplate.opsForZSet()
                 .reverseRangeWithScores(key, from, from + pageSize - 1);
