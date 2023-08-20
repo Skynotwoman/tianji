@@ -29,8 +29,8 @@ import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_SERI
 @Service
 public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, ExchangeCode> implements IExchangeCodeService {
 
-    private final RedisTemplate redisTemplate;
-    private BoundValueOperations<String, String> serialOps;
+    private final StringRedisTemplate redisTemplate;
+    private final BoundValueOperations<String, String> serialOps;
     public ExchangeCodeServiceImpl(StringRedisTemplate redisTemplate){
         this.redisTemplate = redisTemplate;
         this.serialOps = redisTemplate.boundValueOps(COUPON_CODE_SERIAL_KEY);
