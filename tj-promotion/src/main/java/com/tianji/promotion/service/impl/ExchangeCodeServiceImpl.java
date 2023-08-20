@@ -17,6 +17,7 @@ import java.util.List;
 
 import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_MAP_KEY;
 import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_SERIAL_KEY;
+import static com.tianji.promotion.constants.PromotionConstants.COUPON_RANG_KEY;
 
 /**
  * <p>
@@ -43,9 +44,9 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
         if (result == null) {
             return;
         }
-        int maxserialNum = result.intValue();
+        int maxSerialNum = result.intValue();
         List<ExchangeCode> list = new ArrayList<>(totalNum);
-        for (int serialNum = maxserialNum - totalNum + 1; serialNum < maxserialNum; serialNum++) {
+        for (int serialNum = maxSerialNum - totalNum + 1; serialNum <= maxSerialNum; serialNum++) {
 
             String code = CodeUtil.generateCode(serialNum, coupon.getId());
             ExchangeCode e = new ExchangeCode();
@@ -56,6 +57,8 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
             list.add(e);
         }
         saveBatch(list);
+
+        redisTemplate.opsForZSet().add(COUPON_RANG_KEY, coupon.getId().toString(), maxSerialNum);
 
     }
 
