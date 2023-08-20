@@ -7,6 +7,7 @@ import com.tianji.promotion.service.IExchangeCodeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.utils.CodeUtil;
 import org.springframework.data.redis.core.BoundValueOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_MAP_KEY;
 import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_SERIAL_KEY;
 
 /**
@@ -27,8 +29,10 @@ import static com.tianji.promotion.constants.PromotionConstants.COUPON_CODE_SERI
 @Service
 public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, ExchangeCode> implements IExchangeCodeService {
 
+    private final RedisTemplate redisTemplate;
     private BoundValueOperations<String, String> serialOps;
     public ExchangeCodeServiceImpl(StringRedisTemplate redisTemplate){
+        this.redisTemplate = redisTemplate;
         this.serialOps = redisTemplate.boundValueOps(COUPON_CODE_SERIAL_KEY);
     }
     @Async("generateExchangeCodeExecutor")
@@ -53,5 +57,11 @@ public class ExchangeCodeServiceImpl extends ServiceImpl<ExchangeCodeMapper, Exc
         }
         saveBatch(list);
 
+    }
+
+    @Override
+    public boolean updateExchangeMark(long serialNum, boolean mark) {
+        Boolean boo = redisTemplate.opsForValue().setBit(COUPON_CODE_MAP_KEY, serialNum, mark);
+        return boo != null && boo;
     }
 }

@@ -2,11 +2,11 @@ package com.tianji.promotion.controller;
 
 
 import com.tianji.promotion.domain.vo.CouponPageVO;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-
-import org.springframework.web.bind.annotation.RestController;
+import com.tianji.promotion.service.IUserCouponService;
+import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * <p>
@@ -17,7 +17,22 @@ import org.springframework.web.bind.annotation.RestController;
  * @since 2023-08-20
  */
 @RestController
-@RequestMapping("/user-coupon")
+@RequestMapping("/user-coupons")
+@RequiredArgsConstructor
+@Api(tags = "优惠券相关接口")
 public class UserCouponController {
 
+    private final IUserCouponService userCouponService;
+
+    @PostMapping("/{couponId}/receive")
+    @ApiOperation("领取优惠券相关接口")
+    public void receiveCoupon(@PathVariable("couponId") Long couponId){
+        userCouponService.receiveCoupon(couponId);
+    }
+
+    @PostMapping("/{code}/exchange")
+    @ApiOperation("兑换优惠券相关接口")
+    public void exchangeCoupon(@PathVariable("code") String code){
+        userCouponService.exchangeCoupon(code);
+    }
 }

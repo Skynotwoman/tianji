@@ -194,37 +194,53 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
     @Override
     public List<CouponVO> queryIssuingCoupon() {
+
+        // 通过lambda查询，获取所有状态为ISSUING并且获取方式为PUBLIC的优惠券
         List<Coupon> coupons = lambdaQuery()
                 .eq(Coupon::getStatus, CouponStatus.ISSUING)
                 .eq(Coupon::getObtainWay, ObtainType.PUBLIC)
                 .list();
+
+        // 如果没有查询到任何优惠券，则返回一个空列表
         if (CollUtils.isEmpty(coupons)) {
             return CollUtils.emptyList();
         }
+
+        // 提取所有查询到的优惠券的ID
         List<Long> collectIds = coupons.stream().map(Coupon::getId).collect(Collectors.toList());
+
+        // 根据当前用户的ID和上面提取的优惠券ID，查询用户所拥有的优惠券
         List<UserCoupon> userCoupons = userCouponService.lambdaQuery()
                 .eq(UserCoupon::getUserId, UserContext.getUser())
                 .eq(UserCoupon::getCouponId, collectIds)
                 .list();
+
+        // 创建一个映射，显示每张优惠券被用户领取的次数
         Map<Long, Long> issuedMap = userCoupons.stream()
                 .collect(Collectors.groupingBy(UserCoupon::getCouponId, Collectors.counting()));
+
+        // 创建一个映射，显示每张优惠券被用户领取但未使用的次数
         Map<Long, Long> unusedMap = userCoupons.stream()
                 .filter(uc -> uc.getStatus() == UserCouponStatus.UNUSED)
                 .collect(Collectors.groupingBy(UserCoupon::getCouponId, Collectors.counting()));
 
-
+        // 将Coupon对象列表转换为CouponVO对象列表，并设置额外的属性
         List<CouponVO> list = new ArrayList<>(coupons.size());
         for (Coupon c : coupons) {
+            // 将Coupon对象转换为CouponVO对象
             CouponVO vo = BeanUtils.copyBean(c, CouponVO.class);
             list.add(vo);
+
+            // 根据一定的条件设置优惠券是否可用
             vo.setAvailable(
                     c.getIssueNum() < c.getTotalNum()
-                    && issuedMap.getOrDefault(c.getId(), 0L) < c.getUserLimit()
+                            && issuedMap.getOrDefault(c.getId(), 0L) < c.getUserLimit()
             );
+
+            // 设置用户是否已经领取并且还未使用这张优惠券
             vo.setReceived(unusedMap.getOrDefault(c.getId(), 0L) > 0);
         }
         return list;
     }
-
 
 }
