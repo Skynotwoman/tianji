@@ -125,7 +125,7 @@ public class UserCouponServiceImpl extends ServiceImpl<UserCouponMapper, UserCou
             // 更新兑换码的用户ID和状态
             codeService.lambdaUpdate()
                     .set(ExchangeCode::getUserId, userId)
-                    .set(ExchangeCode::getStatus, ExchangeCodeStatus.UNUSED)
+                    .set(ExchangeCode::getStatus, ExchangeCodeStatus.USED)
                     .eq(ExchangeCode::getId, exchangeCode.getId())
                     .update();
         } catch (Exception e) {  // 在处理过程中捕获任何异常
