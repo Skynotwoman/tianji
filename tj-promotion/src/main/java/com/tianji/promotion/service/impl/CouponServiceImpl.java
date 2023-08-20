@@ -1,13 +1,12 @@
 package com.tianji.promotion.service.impl;
 
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.tianji.api.cache.CategoryCache;
 import com.tianji.common.domain.dto.PageDTO;
 import com.tianji.common.exceptions.BadRequestException;
 import com.tianji.common.exceptions.BizIllegalException;
-import com.tianji.common.utils.BeanUtils;
-import com.tianji.common.utils.CollUtils;
-import com.tianji.common.utils.StringUtils;
-import com.tianji.common.utils.UserContext;
+import com.tianji.common.utils.*;
+import com.tianji.promotion.constants.PromotionConstants;
 import com.tianji.promotion.domain.dto.CouponFormDTO;
 import com.tianji.promotion.domain.dto.CouponIssueFormDTO;
 import com.tianji.promotion.domain.po.Coupon;
@@ -26,15 +25,13 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.tianji.promotion.service.IExchangeCodeService;
 import com.tianji.promotion.service.IUserCouponService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.yaml.snakeyaml.events.Event;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -54,6 +51,10 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
     private final IExchangeCodeService codeService;
 
     private final IUserCouponService userCouponService;
+
+    private final CategoryCache categoryCache;
+
+    private final StringRedisTemplate redisTemplate;
     /**
      * 保存优惠券信息。
      * <p>
@@ -148,6 +149,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
      * @throws BadRequestException 当优惠券不存在时抛出。
      * @throws BizIllegalException 当优惠券的状态不为DRAFT或PAUSE时抛出。
      */
+    @Transactional
     public void beginIssue(CouponIssueFormDTO dto) {
 
         // 根据DTO中的ID从数据库中获取优惠券信息
@@ -173,6 +175,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 使用DTO的内容创建一个新的Coupon对象
         Coupon c = BeanUtils.copyBean(dto, Coupon.class);
 
+
         // 如果应立即开始发放，将状态设置为正在发放(ISSUING)，并将发放开始时间设置为当前时间
         if (isBegin) {
             c.setStatus(CouponStatus.ISSUING);
@@ -185,11 +188,26 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         // 更新数据库中的优惠券信息
         updateById(c);
 
-        //判断是否生成兑换码
+       /* if (isBegin) {
+            coupon.setIssueBeginTime(c.getIssueBeginTime());
+            coupon.setIssueEndTime(c.getIssueEndTime());
+            cacheCouponInfo(coupon);
+        }
+*/
+        // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放 哦哦
         if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
             coupon.setIssueEndTime(c.getIssueEndTime());
             codeService.asyncGenerateCode(coupon);
         }
+    }
+
+    private void cacheCouponInfo(Coupon coupon) {
+        Map<String,String> map = new HashMap<>();
+        map.put("issueBeginTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueBeginTime())));
+        map.put("issueEndnTime", String.valueOf(DateUtils.toEpochMilli(coupon.getIssueEndTime())));
+        map.put("totalNum", String.valueOf(coupon.getIssueNum()));
+        map.put("userLimit", String.valueOf(coupon.getUserLimit()));
+        redisTemplate.opsForHash().putAll(PromotionConstants.COUPON_CACHE_KEY_PREFIX + coupon.getId(), map);
     }
 
     @Override
