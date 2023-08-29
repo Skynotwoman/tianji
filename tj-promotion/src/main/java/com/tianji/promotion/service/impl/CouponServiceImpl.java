@@ -34,6 +34,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.tianji.promotion.enums.CouponStatus.*;
+
 /**
  * <p>
  * 优惠券的规则信息 服务实现类
@@ -161,7 +163,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
         }
 
         // 检查优惠券的状态。如果状态不是草稿(DRAFT)或暂停(PAUSE)，抛出异常
-        if (coupon.getStatus() != CouponStatus.DRAFT && coupon.getStatus() != CouponStatus.PAUSE){
+        if (coupon.getStatus() != CouponStatus.DRAFT && coupon.getStatus() != PAUSE){
             throw new BizIllegalException("优惠券状态错误！");
         }
 
@@ -178,22 +180,22 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
         // 如果应立即开始发放，将状态设置为正在发放(ISSUING)，并将发放开始时间设置为当前时间
         if (isBegin) {
-            c.setStatus(CouponStatus.ISSUING);
+            c.setStatus(ISSUING);
             c.setIssueBeginTime(now);
         } else {
             // 否则，将状态设置为未发放(UN_ISSUE)
-            c.setStatus(CouponStatus.UN_ISSUE);
+            c.setStatus(UN_ISSUE);
         }
 
         // 更新数据库中的优惠券信息
         updateById(c);
 
-       /* if (isBegin) {
+       if (isBegin) {
             coupon.setIssueBeginTime(c.getIssueBeginTime());
             coupon.setIssueEndTime(c.getIssueEndTime());
             cacheCouponInfo(coupon);
         }
-*/
+
         // 6.判断是否需要生成兑换码，优惠券类型必须是兑换码，优惠券状态必须是待发放 哦哦
         if (coupon.getObtainWay() == ObtainType.ISSUE && coupon.getStatus() == CouponStatus.DRAFT) {
             coupon.setIssueEndTime(c.getIssueEndTime());
@@ -215,7 +217,7 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
 
         // 通过lambda查询，获取所有状态为ISSUING并且获取方式为PUBLIC的优惠券
         List<Coupon> coupons = lambdaQuery()
-                .eq(Coupon::getStatus, CouponStatus.ISSUING)
+                .eq(Coupon::getStatus, ISSUING)
                 .eq(Coupon::getObtainWay, ObtainType.PUBLIC)
                 .list();
 
@@ -259,6 +261,32 @@ public class CouponServiceImpl extends ServiceImpl<CouponMapper, Coupon> impleme
             vo.setReceived(unusedMap.getOrDefault(c.getId(), 0L) > 0);
         }
         return list;
+    }
+
+    @Override
+    @Transactional
+    public void pauseIssue(long id) {
+        Coupon coupon = getById(id);
+        if (coupon == null) {
+            throw new BadRequestException("优惠券不存在！");
+        }
+
+        CouponStatus status = coupon.getStatus();
+        if (status != UN_ISSUE && status != ISSUING) {
+            return;
+        }
+
+        boolean success = lambdaUpdate()
+                .set(Coupon::getStatus, PAUSE)
+                .eq(Coupon::getId, id)
+                .in(Coupon::getStatus, UN_ISSUE, ISSUING)
+                .update();
+        if (!success) {
+            log.error("重复暂停优惠券！");
+        }
+
+        redisTemplate.delete(PromotionConstants.COUPON_CACHE_KEY_PREFIX + id);
+
     }
 
 }

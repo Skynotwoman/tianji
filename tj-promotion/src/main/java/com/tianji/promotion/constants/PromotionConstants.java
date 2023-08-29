@@ -6,5 +6,7 @@ public interface PromotionConstants {
 
     String COUPON_RANG_KEY = "coupon:code:range";
 
+    String USER_COUPON_CACHE_KEY_PREFIX = "prs:user:coupon:";
     String COUPON_CACHE_KEY_PREFIX = "prs:user:coupon:";
+
 }
